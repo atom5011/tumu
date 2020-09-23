@@ -19,6 +19,10 @@ public class GameManager : MonoBehaviour
     [SerializeField, Header("干支の画像データ")]
     private Sprite[] etoSprites;
 
+    [SerializeField]
+    private UIManager uiManager;
+
+
     // 最初にドラッグした干支の情報
     private Eto firstSelectEto;
 
@@ -37,10 +41,16 @@ public class GameManager : MonoBehaviour
     [Header("スワイプでつながる干支の範囲")]
     public float etoDistance = 1.0f;
 
+    private float timer;        // 残り時間計測用
+
     IEnumerator Start()
     {   // <=  戻り値を void から IEnumerator型に変更して、コルーチンメソッドにする
         // 干支の画像を読みこむ。この処理が終了するまで、次の処理へはいかないようにする
         yield return StartCoroutine(LoadEtoSprites());
+
+        // 残り時間の表示
+        uiManager.UpdateDisplayGameTime(GameData.instance.gameTime);
+
 
         // 引数で指定した数の干支を生成する
         StartCoroutine(CreateEtos(GameData.instance.createEtoCount));
@@ -114,6 +124,33 @@ public class GameManager : MonoBehaviour
         {
             // 干支のドラッグ（スワイプ）中の処理	    
             OnDragging();
+        }
+
+        // ゲームの残り時間のカウント処理
+        timer += Time.deltaTime;
+
+        // timerが 1 以上になったら
+        if (timer >= 1)
+        {
+            // リセットして再度加算できるように
+            timer = 0;
+
+            // 残り時間をマイナス 
+            GameData.instance.gameTime--;
+
+            // 残り時間がマイナスになったら
+            if (GameData.instance.gameTime <= 0)
+            {
+
+                //0で止める
+                GameData.instance.gameTime = 0;
+
+                // TODO ゲーム終了を追加する
+                Debug.Log("ゲーム終了");
+            }
+
+            // 残り時間の表示更新
+            uiManager.UpdateDisplayGameTime(GameData.instance.gameTime);
         }
 
     }
@@ -259,6 +296,9 @@ public class GameManager : MonoBehaviour
                 Destroy(eraseEtoList[i].gameObject);
             }
 
+            // スコアと消した干支の数の加算
+            AddScores(currentEtoType, eraseEtoList.Count);
+
             // 消した干支の数だけ新しい干支をランダムに生成
             StartCoroutine(CreateEtos(eraseEtoList.Count));
 
@@ -330,5 +370,22 @@ public class GameManager : MonoBehaviour
     {
         // 現在ドラッグしている干支のアルファ値を変更
         dragEto.imgEto.color = new Color(dragEto.imgEto.color.r, dragEto.imgEto.color.g, dragEto.imgEto.color.b, alphaValue);
+    }
+
+    /// <summary>
+    /// スコアと消した干支の数を加算
+    /// </summary>
+    /// <param name="etoType">消した干支の種類</param>
+    /// <param name="count">消した干支の数</param>
+    private void AddScores(EtoType? etoType, int count)
+    {
+        // スコアを加算(EtoPoint * 消した数)
+        GameData.instance.score += GameData.instance.etoPoint * count;
+
+        // 消した干支の数を加算
+        GameData.instance.eraseEtoCount += count;
+
+        // スコア加算と画面の更新処理
+        uiManager.UpdateDisplayScore();
     }
 }
