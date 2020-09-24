@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 
 public class GameManager : MonoBehaviour
 {
@@ -43,8 +44,29 @@ public class GameManager : MonoBehaviour
 
     private float timer;        // 残り時間計測用
 
+    /// <summary>
+    /// ゲームの進行状況
+    /// </summary>
+    public enum GameState
+    {
+        Select,     // 干支の選択中
+        Ready,      // ゲームの準備中
+        Play,       // ゲームのプレイ中
+        Result      // リザルト中
+    }
+
+    [Header("現在のゲームの進行状況")]
+    public GameState gameState = GameState.Select;
+
+    [SerializeField]
+    private ResultPopUp resultPopUp;
+
     IEnumerator Start()
-    {   // <=  戻り値を void から IEnumerator型に変更して、コルーチンメソッドにする
+    {
+        // gameStateを準備中に変更
+        gameState = GameState.Ready;
+
+        // <=  戻り値を void から IEnumerator型に変更して、コルーチンメソッドにする
         // 干支の画像を読みこむ。この処理が終了するまで、次の処理へはいかないようにする
         yield return StartCoroutine(LoadEtoSprites());
 
@@ -106,9 +128,21 @@ public class GameManager : MonoBehaviour
             yield return new WaitForSeconds(0.03f);
         }
 
+        // gameStateが準備中のときだけゲームプレイ中に変更
+        if (gameState == GameState.Ready)
+        {
+            gameState = GameState.Play;
+        }
+
     }
     void Update()
     {
+        // ゲームのプレイ中以外のgameStateでは処理を行わない
+        if (gameState != GameState.Play)
+        {
+            return;
+        }
+
         // 干支をつなげる処理
         if (Input.GetMouseButtonDown(0) && firstSelectEto == null)
         {
@@ -145,8 +179,8 @@ public class GameManager : MonoBehaviour
                 //0で止める
                 GameData.instance.gameTime = 0;
 
-                // TODO ゲーム終了を追加する
-                Debug.Log("ゲーム終了");
+                // TODO ゲーム終了を追加する  TODOの処理を実装
+                StartCoroutine(GameUp());
             }
 
             // 残り時間の表示更新
@@ -387,5 +421,37 @@ public class GameManager : MonoBehaviour
 
         // スコア加算と画面の更新処理
         uiManager.UpdateDisplayScore();
+    }
+
+    /// ゲーム終了処理
+    /// </summary>
+    private IEnumerator GameUp()
+    {
+
+        // gameStateをリザルトに変更する = Updateメソッドが動かなくなる
+        gameState = GameState.Result;
+
+        yield return new WaitForSeconds(1.5f);
+
+        // TODO処理を実装する
+        yield return StartCoroutine(MoveResultPopUp());
+    }
+
+    /// <summary>
+    /// リザルドポップアップを画面内に移動
+    /// </summary>
+    /// <returns></returns> 
+    private IEnumerator MoveResultPopUp()
+    {
+
+        // DoTweenの機能を使って、ResultPopUpゲームオブジェクトを画面外から画面内に移動させる
+        resultPopUp.transform.DOMoveY(0, 1.0f).SetEase(Ease.Linear)
+                .OnComplete(() => {
+                    // リザルト表示(スコアと消した干支の数を渡す)　TODOを実装
+                    resultPopUp.DisplayResult(GameData.instance.score, GameData.instance.eraseEtoCount);
+                }
+    );
+
+        yield return new WaitForSeconds(1.0f);
     }
 }
