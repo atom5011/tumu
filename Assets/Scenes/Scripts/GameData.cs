@@ -28,6 +28,26 @@ public class GameData : MonoBehaviour
     [Header("現在のゲームの残り時間")]
     public float gameTime;
 
+    /// <summary>
+    /// 干支の基本情報
+    /// </summary>
+    [System.Serializable]
+    public class EtoData
+    {
+        public EtoType etoType;
+        public Sprite sprite;
+
+        //コンストラクタ（インスタンス（new）時に用意している因数への値の代入を強制するメソッド）
+        public EtoData(EtoType etoType, Sprite sprite)
+        {
+            this.etoType = etoType;
+            this.sprite = sprite;
+        }
+    }
+
+    [Header("干支１２種類のリスト")]
+    public List<EtoData> etoDataList = new List<EtoData>();
+
     void Awake()
     {
         if (instance == null)
@@ -71,5 +91,29 @@ public class GameData : MonoBehaviour
 
         // 初期化 GameDataゲームオブジェクトはシーン遷移しても破棄されない設定になっていますので、ここで再度、初期化の処理を行う必要
         InitGame();
+    }
+
+    /// <summary>
+    /// 干支データのリストを作成
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerator IniEtoDataList()
+    {
+        //干支の画像を読み込むための変数を配列で用意（GameManagerの宣言フィールドで用意していたものを、このメソッド内のみで使用するように変更）
+        Sprite[] etoSprites = new Sprite[(int)EtoType.Count];
+
+        //Resources.LoadAllを行い、分割されている干支の画像を順番にすべて読み込んで配列に代入
+        etoSprites = Resources.LoadAll<Sprite>("Sprites/eto");
+
+        //ゲームに登場する１２種類の干支データを作成
+        for(int i = 0; i < (int)EtoType.Count; i++)
+        {
+            //干支の情報を扱うクラスEtoDataをインスタンス（new EtoData()9し、コンストラクタを使って値を代入
+            EtoData etoData = new EtoData((EtoType)i, etoSprites[i]);
+
+            //干支データをListへ追加
+            etoDataList.Add(etoData);
+        }
+        yield break;
     }
 }
